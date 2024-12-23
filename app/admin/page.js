@@ -104,6 +104,30 @@ export default function AdminDashboard() {
         filterCheckOutDate,
     ]);
 
+    // State for entry statuses, mapped by unique student ID
+    const [entryStatuses, setEntryStatuses] = useState({});
+
+    // Load initial state from local storage
+    useEffect(() => {
+        const storedStatuses = JSON.parse(localStorage.getItem('entryStatuses'));
+        if (storedStatuses) {
+            setEntryStatuses(storedStatuses);
+        }
+    }, []);
+
+    // Update local storage when entryStatuses changes
+    useEffect(() => {
+        localStorage.setItem('entryStatuses', JSON.stringify(entryStatuses));
+    }, [entryStatuses]);
+
+    // Toggle status for a specific student
+    const handleToggleStatus = (studentId) => {
+        setEntryStatuses((prevStatuses) => ({
+            ...prevStatuses,
+            [studentId]: !prevStatuses[studentId], // Toggle only this student's status
+        }));
+    };
+
     return user && filteredData ? (
         <>
             <div className={"flex flex-col justify-center w-screen md:w-fit ml-auto mr-auto"}>
@@ -446,7 +470,40 @@ export default function AdminDashboard() {
                     {filteredData.map((row, index) => (
                         <div key={index} className={`${row.overallRegistrationStatus === "Accepted" ? "bg-gray-100" : "bg-red-200"} text-bold flex flex-col gap-2 rounded-2xl`}>
                             <div className="px-4 pt-2">
-                                <p className="mt-1 text-xs font-semibold text-gray-600">Student Details</p>
+                                <div className="flex justify-between items-center">
+                                    <p className="mt-1 text-xs font-semibold text-gray-600">Student Details</p>
+                                    <td className="px-4 py-2">
+                                        {entryStatuses[row.studentId] ? (
+                                            <button
+                                                className="bg-[#f99] text-xs text-[#950606] font-bold px-3 py-1 rounded-3xl flex items-center"
+                                                onClick={() => handleToggleStatus(row.studentId)}
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    strokeWidth={1.5}
+                                                    stroke="currentColor"
+                                                    className="w-4 h-4 mr-2"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M6 18L18 6M6 6l12 12"
+                                                    />
+                                                </svg>
+                                                Delete Entry
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="bg-[#a8d9f7] text-xs text-[#084469] font-bold px-3 py-1 rounded-3xl"
+                                                onClick={() => handleToggleStatus(row.studentId)}
+                                            >
+                                                Mark Entry
+                                            </button>
+                                        )}
+                                    </td>
+                                </div>
                                 <p className="font-bold">{row.studentFullName ?? "-"}</p>
                                 <p className="text-xs">{row.gender ?? "-"} - {row.dateOfBirth ?? "-"}</p>
                                 <p className="text-xs">{row.district ?? "-"}, {row.samithiName ?? '-'}</p>
@@ -455,6 +512,7 @@ export default function AdminDashboard() {
                                     <p className="text-xs">Passed group 2: {row.hasPassedGroup2Exam ?? '-'}</p>
                                 )}
                             </div>
+
                             <div className="flex flex-wrap gap-1 px-3">
                                 <p className="text-xs font-bold bg-[#c4ffc2] text-[#07210d] p-1 px-2 rounded-2xl w-fit">{row.studentId ?? "-"}</p>
                                 <p className="text-xs font-bold bg-[#bad1ff] text-[#090e2d] p-1 px-2 rounded-2xl w-fit">{row.studentGroup ?? "-"}</p>
@@ -537,6 +595,7 @@ export default function AdminDashboard() {
                                 <th className="px-4 py-2 border">Arrival & Departure Logistics</th>
                                 <th className="px-4 py-2 border">Accompany Details</th>
                                 <th className="px-4 py-2 border">Accommodation Details</th>
+                                <th className="px-4 py-2 border">Entry Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -617,6 +676,37 @@ export default function AdminDashboard() {
                                                 <p className="text-xs bg-blue-200 text-blue-800 font-bold rounded-xl p-1 px-2 w-fit">{row.numFemaleAccompanyingNeedAccommodation ?? "0"} female</p>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="px-4 py-2 border">
+                                        {entryStatuses[row.studentId] ? (
+                                            <button
+                                                className="bg-[#f99] text-white text-[#950606] font-bold px-4 py-2 rounded-3xl flex items-center"
+                                                onClick={() => handleToggleStatus(row.studentId)}
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    strokeWidth={1.5}
+                                                    stroke="currentColor"
+                                                    className="w-5 h-5 mr-2"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M6 18L18 6M6 6l12 12"
+                                                    />
+                                                </svg>
+                                                Delete Entry
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="bg-[#a8d9f7] text-white text-[#084469] font-bold px-4 py-2 rounded-3xl"
+                                                onClick={() => handleToggleStatus(row.studentId)}
+                                            >
+                                                Mark Entry
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
