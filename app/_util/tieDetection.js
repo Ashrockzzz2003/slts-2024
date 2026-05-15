@@ -12,7 +12,8 @@ const getScoreTotal = (score, eventName, judgeIds, criteriaList) => {
   return criteriaList.reduce((criteriaTotal, criteria) => {
     const judgeTotal = judgeIds.reduce((total, judgeId) => {
       return (
-        total + Number.parseFloat(score?.[eventName]?.[judgeId]?.[criteria] ?? 0)
+        total +
+        Number.parseFloat(score?.[eventName]?.[judgeId]?.[criteria] ?? 0)
       );
     }, 0);
 
@@ -29,7 +30,9 @@ export const findTopCutoffTie = (
   const sortedEntries = [...entries].sort(
     (a, b) => b.overallTotal - a.overallTotal,
   );
-  const cutoffScore = normalizeScore(sortedEntries[cutoffRank - 1].overallTotal);
+  const cutoffScore = normalizeScore(
+    sortedEntries[cutoffRank - 1].overallTotal,
+  );
   const nextScore = normalizeScore(sortedEntries[cutoffRank].overallTotal);
 
   if (cutoffScore !== nextScore) return null;
