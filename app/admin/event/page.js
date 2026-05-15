@@ -15,6 +15,11 @@ import {
   updateCrieria,
 } from '@/app/_util/data';
 import { auth } from '@/app/_util/initApp';
+import {
+  calculateGroupTopCutoffTie,
+  calculateIndividualTopCutoffTie,
+  formatTieSummary,
+} from '@/app/_util/tieDetection';
 
 export default function ManageEvents() {
   const router = useRouter();
@@ -32,6 +37,7 @@ export default function ManageEvents() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [copiedJudge, setCopiedJudge] = useState(null);
+  const [eventTieAlerts, setEventTieAlerts] = useState({});
 
   useEffect(() => {
     if (!secureLocalStorage.getItem('user')) {
@@ -50,6 +56,32 @@ export default function ManageEvents() {
       setGroups(_data[1]);
 
       isLoading && setIsLoading(false);
+
+      Promise.all(
+        _data[0].map(async (event) => {
+          try {
+            const result = await getJudgeEventData(event.name);
+            if (!result || result.length !== 2) return [event.name, null];
+
+            const tie = event.name.includes('GROUP')
+              ? calculateGroupTopCutoffTie(result[0], result[1], event.name)
+              : calculateIndividualTopCutoffTie(
+                  result[0],
+                  result[1],
+                  event.name,
+                );
+
+            return [event.name, tie];
+          } catch (err) {
+            console.error(`Unable to check ties for ${event.name}:`, err);
+            return [event.name, null];
+          }
+        }),
+      ).then((alerts) => {
+        setEventTieAlerts(
+          Object.fromEntries(alerts.filter(([, tie]) => Boolean(tie))),
+        );
+      });
     });
   }, [router, isLoading]);
 
@@ -418,6 +450,16 @@ export default function ManageEvents() {
                             <span className="text-sm font-bold text-gray-900">
                               {event.name}
                             </span>
+                            {eventTieAlerts[event.name] && (
+                              <span
+                                className="inline-flex w-fit items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200"
+                                title={formatTieSummary(
+                                  eventTieAlerts[event.name],
+                                )}
+                              >
+                                {formatTieSummary(eventTieAlerts[event.name])}
+                              </span>
+                            )}
                             <div className="flex flex-wrap gap-1">
                               {event.group.map((group, idx) => (
                                 <span

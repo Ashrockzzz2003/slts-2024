@@ -6,6 +6,10 @@ import { useEffect, useState } from 'react';
 import secureLocalStorage from 'react-secure-storage';
 import { getJudgeEventData } from '@/app/_util/data';
 import { auth } from '@/app/_util/initApp';
+import {
+  calculateIndividualTopCutoffTie,
+  formatTieSummary,
+} from '@/app/_util/tieDetection';
 
 export default function EventLeaderboardIndiPage() {
   const router = useRouter();
@@ -16,6 +20,7 @@ export default function EventLeaderboardIndiPage() {
   const [filteredParticipants, setFilteredParticipants] = useState(null);
 
   const [orderedJudges, setOrderedJudges] = useState([]);
+  const [topCutoffTie, setTopCutoffTie] = useState(null);
 
   const searchParams = useSearchParams();
 
@@ -94,6 +99,9 @@ export default function EventLeaderboardIndiPage() {
           _data[0].sort((a, b) => b.overallTotal - a.overallTotal);
 
           setEventMetadata(_data[1]);
+          setTopCutoffTie(
+            calculateIndividualTopCutoffTie(_data[0], _data[1], _eventName),
+          );
 
           const db = getFirestore();
           const mappingSnap = await getDoc(
@@ -455,6 +463,24 @@ export default function EventLeaderboardIndiPage() {
           </div>
         </div>
 
+        {topCutoffTie && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-amber-900">
+                  Top 5 tie needs review
+                </h3>
+                <p className="text-sm text-amber-800">
+                  {formatTieSummary(topCutoffTie)}.
+                </p>
+              </div>
+              <span className="inline-flex w-fit items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-200">
+                Tie alert
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Leaderboard Card */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -547,15 +573,23 @@ export default function EventLeaderboardIndiPage() {
                 {filteredParticipants.map((row, index) => {
                   const isSubstituted =
                     row.substitute && row.substitute[eventMetadata.name];
+                  const isTopCutoffTie = topCutoffTie?.ids.has(row.studentId);
                   return (
                     <tr
                       key={index}
-                      className={`hover:bg-gray-50 transition-colors ${isSubstituted ? 'bg-red-50/50' : ''}`}
+                      className={`hover:bg-gray-50 transition-colors ${isTopCutoffTie ? 'bg-amber-50/80' : isSubstituted ? 'bg-red-50/50' : ''}`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-bold text-gray-900">
-                          #{index + 1}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-bold text-gray-900">
+                            #{index + 1}
+                          </span>
+                          {isTopCutoffTie && (
+                            <span className="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 border border-amber-200">
+                              TOP 5 TIE
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {isSubstituted ? (
@@ -691,13 +725,16 @@ export default function EventLeaderboardIndiPage() {
             {filteredParticipants.map((row, index) => {
               const isSubstituted =
                 row.substitute && row.substitute[eventMetadata.name];
+              const isTopCutoffTie = topCutoffTie?.ids.has(row.studentId);
               return (
                 <div
                   key={index}
                   className={`bg-white rounded-xl p-4 shadow-sm border ${
-                    isSubstituted
-                      ? 'border-red-200 bg-red-50/10'
-                      : 'border-gray-200'
+                    isTopCutoffTie
+                      ? 'border-amber-200 bg-amber-50/80'
+                      : isSubstituted
+                        ? 'border-red-200 bg-red-50/10'
+                        : 'border-gray-200'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-3">
@@ -705,6 +742,11 @@ export default function EventLeaderboardIndiPage() {
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">
                         #{index + 1}
                       </span>
+                      {isTopCutoffTie && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                          TOP 5 TIE
+                        </span>
+                      )}
                       {isSubstituted ? (
                         <div className="flex flex-col">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 w-fit mb-1">
